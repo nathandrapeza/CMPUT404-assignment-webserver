@@ -63,8 +63,15 @@ class MyWebServer(socketserver.BaseRequestHandler):
         
         if content_type.startswith("text"):
             response += message
-
+        print(f"content type: {content_type}")
+        print(f"MESSAGE: {message}")
         print(response)
+        
+        encoded_response = response.encode(encoding = "utf-8")
+
+        #print(f"wacky line 1 : {self.request.recv(1024).strip()}")
+        
+        self.request.sendall(encoded_response)
         
         #self.request.sendall(bytearray("OK",'utf-8'))
 
@@ -111,18 +118,19 @@ class MyWebServer(socketserver.BaseRequestHandler):
                 payload = self.process_html_css(payload)
             except:
                 status_code = "404 Not Found"
-        elif start_line[1].endswith("html") or start_line[1].endswith("css"):
+        elif start_line[1].endswith("html") or start_line[1].endswith("html/") or start_line[1].endswith("css") or start_line[1].endswith("css/"):
             try:
                 payload = open(f"{root_dir}/{start_line[1]}", "r")
                 status_code = "200 OK\n\r"
-                if start_line[1].endswith("html"):
+                if start_line[1].endswith("html") or start_line[1].endswith("html/"):
                     content_type = "text/html\n\r" #charset=UTF-8
                     payload = self.process_html_css(payload)
-                else:
+                elif start_line[1].endswith("css") or start_line[1].endswith("css/"):
                     content_type = "text/css\n\r"
                     payload = self.process_html_css(payload)
             except:
                 status_code = "404 Not Found\n\r"
+                content_type = None
         else:
             try:
                 payload = open(f"{root_dir}/{start_line[1]}", "r")
@@ -137,7 +145,8 @@ class MyWebServer(socketserver.BaseRequestHandler):
                     content_type = "text/html; charset=UTF-8\n\r"
                 except:
                     status_code = "404 Not Found\n\r"
-        
+                    content_type = None
+       
         #self.process_html(payload)
         request_data = [status_code, size, content_type, payload]
         #print(request_data)
@@ -175,6 +184,7 @@ class MyWebServer(socketserver.BaseRequestHandler):
             lines.remove("\n")
         print(f"lines:{lines}")
         message = "\r".join(lines)
+        return message
 
 if __name__ == "__main__":
     HOST, PORT = "localhost", 8080
