@@ -38,8 +38,6 @@ class MyWebServer(socketserver.BaseRequestHandler):
         self.data = self.request.recv(1024).strip()
         #print ("Got a request of: %s\n" % self.data)
         req_str = self.data.decode("utf-8")
-        #print(f"a: {a}, a[0]: {a[0]}")
-        #print(list(self.data.split(" ")))
         start_line = self.grab_start_line(req_str)
 
         request_data = self.process_location(start_line)
@@ -56,25 +54,18 @@ class MyWebServer(socketserver.BaseRequestHandler):
         # Building the response:
         response = status_line
         response += "Connection: close\n\r"
-        response += f"Content-Length: {size}\n\r"
+        response += f"Content-Length: 1800\n\r"
         #if not request_data[0.startswith("404"):
 
         response += f"Content-Type: {content_type}"
         response += "\n\r"
         
-        if content_type != None and content_type.startswith("text"):
+        if status_code == "200 OK\n\r"  and content_type != None and content_type.startswith("text"):
             response += message
-        #print(f"content type: {content_type}")
-        #print(f"MESSAGE: {message}")
-        print(response)
         
         encoded_response = response.encode(encoding = "utf-8")
-
-        #print(f"wacky line 1 : {self.request.recv(1024).strip()}")
-        
         self.request.sendall(encoded_response)
         
-        #self.request.sendall(bytearray("OK",'utf-8'))
 
     
     # grab_start_line() method will return an array of elements from the
@@ -105,21 +96,67 @@ class MyWebServer(socketserver.BaseRequestHandler):
         content_type = None
         status_code = None
         payload = None
-        
+        index_search = False
+        request_data = []
+        if "html" in start_line[1]:
+            content_type = "text/html\n\r"
+        elif "css" in start_line[1]:
+            content_type = "text/css\n\r"
+        elif start_line[1] == "/":
+            content_type = "text/html\n\r"
+        else:
+            index_search = True
+            content_type = "text/html\n\r"
+        path = start_line[1]
+        if len(start_line[1]) > 0 and start_line[1].startswith("/"):
+            path = start_line[1][1::]
+        if len(start_line[1]) > 0 and start_line[1].endswith("/"):
+            path = start_line[1][:len(start_line[0])-1:]
+        print(f"PATH:::::: {path}")
+        if index_search:
+            try:
+                payload = open(f"{rootdir}/{path}/index.html", "r")
+                payload = self.process_html_css(payload)
+                status_code = "200 OK\n\r"
+            except:
+                status_code = "404 Not Found\n\r"
+        else:
+            if path == "/":
+                try:
+                    payload = open(f"{rootdir}/index.html", "r")
+                    payload = self.process_html_css(payload)
+                    status_code = "200 OK\n\r"
+                except:
+                    status_code = "404 Not Found\n\r"
+            else:
+                try:
+                    print(f"PATH : {path}")
+                    payload = open(f"{rootdir}/{path}", "r")
+                    payload = self.process_html_css(payload)
+                    satus_code = "200 OK\n\r"
+                except:
+                    status_code = "404 Not Found\n\r"
+        request_data = [status_code , size, content_type, payload]
+        print(f"req data: {request_data}")
+                
+        '''
+        if len(start_line[1]) > 1 and start_line[1][0] == "/":
+            start_line[1] = start_line[1][1::]
+        print(f"START LINEEEEEEEEE ------------- : {start_line[1]}") 
         if start_line[1] == "/":
             try: # / indicates response should return /index.html from root dir
                 filename = f"{root_dir}/index.html"
                 payload = open(f"{root_dir}/index.html", "r")
                 status_code = "200 OK\n\r"
                 import os
-                size = str((os.patn.getsize(f"{rootdir}/{start_line[1]}")))
+                #size = str(os.patn.getsize(f"{rootdir}/{start_line[1]}"))
                 #content_type = "text/html; charset=UTF-8; charset=iso-8859-1"
                 content_type = "text/html;\n\r"
                 #size = os.path.getsize("{root_dir}/index.html")
                 #print(f"SIZEE::::: {size}")
                 payload = self.process_html_css(payload)
             except:
-                status_code = "404 Not Found"
+                status_code = "404 Not Found\n\r"
         elif start_line[1].endswith("html") or start_line[1].endswith("html/") or start_line[1].endswith("css") or start_line[1].endswith("css/"):
             try:
                 payload = open(f"{root_dir}/{start_line[1]}", "r")
@@ -128,14 +165,21 @@ class MyWebServer(socketserver.BaseRequestHandler):
                     content_type = "text/html\n\r" #charset=UTF-8
                     payload = self.process_html_css(payload)
                     import os
-                    size = str(os.path.getsize(f"{rootdir}/{start_line[1]}\n\r"))
+                    #size = str(os.path.getsize(f"{rootdir}/{start_line[1]}\n\r"))
                 elif start_line[1].endswith("css") or start_line[1].endswith("css/"):
                     content_type = "text/css\n\r"
                     #content_type = "text/css; charset=UTF-8\n\r"
                     payload = self.process_html_css(payload)
             except:
                 status_code = "404 Not Found\n\r"
-                content_type = None
+                if start_line[1].endswith("html") or start_line[1].endswith("html/"):
+                    content_type = "text/html\n\r"
+                else:
+                    content_type = "text/css\n\r"
+                    
+        elif start_line[1].startswith("/.."): # prevent reverse cd in directory
+            status_code = "404 Not Found\n\r"
+            content_type = None
         else:
             try:
                 payload = open(f"{root_dir}/{start_line[1]}", "r")
@@ -143,18 +187,37 @@ class MyWebServer(socketserver.BaseRequestHandler):
                 status_code = "200 OK\n\r"
             except:
                 try:
-                    # it might've given us a directory, for example /deep
+                    # it might've given us a directory,
                     # therefore, try to find index.html inside of ./www/filepath/
-                    payload = open(f"{root_dir}/{start_line[1]}/index.html", "r")
+
+                    path = ""
+                    if start_line[0].endswith("/"):
+                        path = start_line[0][0:len(start_line[0])-1]
+                    else:
+                        path = start_line[0]
+                    payload = open(f"{root_dir}/{path}/index.html", "r")
                     payload = self.process_html_css(payload)
-                    content_type = "text/html; charset=UTF-8\n\r"
+                    status_code = "200 OK\n\r"
+                    content_type = "text/html\n\r"
+                    #content_type = "text/html; charset=UTF-8\n\r"
                 except:
                     status_code = "404 Not Found\n\r"
                     content_type = None
-       
+
+        # for any attempted files that were still of html or css type that
+        # were unreachable
+        #if "html" in start_line[0]:
+         #   content_type = "text/html\n\r"
+        #elif "css" in start_line[0]:
+         #   content_type = "text/css\n\r"      
+
+
+        if start_line[0].lower() != "get":
+            status_code = "405 Method Not Allowed\n\r"
         #self.process_html(payload)
         request_data = [status_code, size, content_type, payload]
-        #print(request_data)
+        print(f"REQUEST DATA ->>>>>>>>>> {request_data})")
+        '''
         return(request_data)
 
     # process_html_css goes through an HTML or CSS file and returns one to be used in the response message
