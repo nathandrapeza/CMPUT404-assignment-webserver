@@ -49,12 +49,11 @@ class MyWebServer(socketserver.BaseRequestHandler):
         content_type = request_data[2]
         message = request_data[3]
     
-        #print(f"SIZE OF FILE /index.html : {os.path.getsize('./www/index.html')}")
         
         # Building the response:
         response = status_line
         response += "Connection: close\n\r"
-        response += f"Content-Length: 1800\n\r"
+        response += f"Content-Length: {size}\n\r"
         #if not request_data[0.startswith("404"):
 
         response += f"Content-Type: {content_type}"
@@ -101,7 +100,6 @@ class MyWebServer(socketserver.BaseRequestHandler):
         
         if len(start_line[1]) > 1 and start_line[1][0] == "/":
             start_line[1] = start_line[1][1::]
-        print(f"START LINEEEEEEEEE ------------- : {start_line[1]}") 
         if start_line[1] == "/":
             try: # / indicates response should return /index.html from root dir
                 filename = f"{root_dir}/index.html"
@@ -144,18 +142,17 @@ class MyWebServer(socketserver.BaseRequestHandler):
                     # therefore, try to find index.html inside of ./www/filepath/
 
                     path = ""
-                    if start_line[0].endswith("/"):
-                        path = start_line[0][0:len(start_line[0])-1]
+                    if start_line[1].endswith("/"):
+                        path = start_line[1][0:len(start_line[0])-1]
                     else:
-                        path = start_line[0]
+                        path = start_line[1]
                     payload = open(f"{root_dir}/{path}/index.html", "r")
                     payload = self.process_html_css(payload)
                     status_code = "200 OK\n\r"
                     content_type = "text/html\n\r"
-                    #content_type = "text/html; charset=UTF-8\n\r"
                 except:
                     status_code = "404 Not Found\n\r"
-                    content_type = None
+                    content_type = "text/html\n\r"
 
         # for any attempted files that were still of html or css type that
         # were unreachable
@@ -169,7 +166,6 @@ class MyWebServer(socketserver.BaseRequestHandler):
             status_code = "405 Method Not Allowed\n\r"
         #self.process_html(payload)
         request_data = [status_code, size, content_type, payload]
-        print(f"REQUEST DATA ->>>>>>>>>> {request_data})")
         
         return(request_data)
 
@@ -190,7 +186,6 @@ class MyWebServer(socketserver.BaseRequestHandler):
             j = 0
             count = 0
             spaces = False
-            #print(lines[i])
 
             while j < len(lines[i]):
                 if lines[i][j] == " ":
