@@ -44,27 +44,28 @@ class MyWebServer(socketserver.BaseRequestHandler):
 
         request_data = self.process_location(start_line)
         status_line = f"HTTP/1.1 {request_data[0]}"
-        print(f"STATUS LINE: {status_line}")
 
         # All following request_data list variables will already have \n\r
         status_code = request_data[0]
         size = request_data[1]
         content_type = request_data[2]
         message = request_data[3]
+    
+        #print(f"SIZE OF FILE /index.html : {os.path.getsize('./www/index.html')}")
         
         # Building the response:
         response = status_line
         response += "Connection: close\n\r"
-        response += f"Content-Length: 850\n\r"
+        response += f"Content-Length: {size}\n\r"
         #if not request_data[0.startswith("404"):
 
         response += f"Content-Type: {content_type}"
         response += "\n\r"
         
-        if content_type.startswith("text"):
+        if content_type != None and content_type.startswith("text"):
             response += message
-        print(f"content type: {content_type}")
-        print(f"MESSAGE: {message}")
+        #print(f"content type: {content_type}")
+        #print(f"MESSAGE: {message}")
         print(response)
         
         encoded_response = response.encode(encoding = "utf-8")
@@ -81,14 +82,13 @@ class MyWebServer(socketserver.BaseRequestHandler):
     # request is formatted already (self.request.rec(2012.strip()))
     # [method, target, http version]
     def grab_start_line(self, request):
-        print(f"REQ: {request}")
-        print(request)
+        #print(f"REQ: {request}")
+        #print(request)
         start_line = ""
         i = 0
         while i < len(request):
             if request[i] != '\r':
                 start_line += request[i]
-                #print("%s", request[i])
             else:
                 i = len(request)
             i += 1
@@ -111,8 +111,10 @@ class MyWebServer(socketserver.BaseRequestHandler):
                 filename = f"{root_dir}/index.html"
                 payload = open(f"{root_dir}/index.html", "r")
                 status_code = "200 OK\n\r"
+                import os
+                size = str((os.patn.getsize(f"{rootdir}/{start_line[1]}")))
                 #content_type = "text/html; charset=UTF-8; charset=iso-8859-1"
-                content_type = "text/html; charset=UTF-8\n\r"
+                content_type = "text/html;\n\r"
                 #size = os.path.getsize("{root_dir}/index.html")
                 #print(f"SIZEE::::: {size}")
                 payload = self.process_html_css(payload)
@@ -125,8 +127,11 @@ class MyWebServer(socketserver.BaseRequestHandler):
                 if start_line[1].endswith("html") or start_line[1].endswith("html/"):
                     content_type = "text/html\n\r" #charset=UTF-8
                     payload = self.process_html_css(payload)
+                    import os
+                    size = str(os.path.getsize(f"{rootdir}/{start_line[1]}\n\r"))
                 elif start_line[1].endswith("css") or start_line[1].endswith("css/"):
                     content_type = "text/css\n\r"
+                    #content_type = "text/css; charset=UTF-8\n\r"
                     payload = self.process_html_css(payload)
             except:
                 status_code = "404 Not Found\n\r"
@@ -138,8 +143,8 @@ class MyWebServer(socketserver.BaseRequestHandler):
                 status_code = "200 OK\n\r"
             except:
                 try:
-                    # it might've given us a directory, namely /deep
-                    # therefore, try to find index.html inside of /.../dir/
+                    # it might've given us a directory, for example /deep
+                    # therefore, try to find index.html inside of ./www/filepath/
                     payload = open(f"{root_dir}/{start_line[1]}/index.html", "r")
                     payload = self.process_html_css(payload)
                     content_type = "text/html; charset=UTF-8\n\r"
@@ -152,7 +157,7 @@ class MyWebServer(socketserver.BaseRequestHandler):
         #print(request_data)
         return(request_data)
 
-    # process_html_css goes through an HTML or CSS file and returns one to be used in the
+    # process_html_css goes through an HTML or CSS file and returns one to be used in the response message
     # server HTTP respnose
     # input: payload is a python file object
     def process_html_css(self, payload):
@@ -169,7 +174,7 @@ class MyWebServer(socketserver.BaseRequestHandler):
             j = 0
             count = 0
             spaces = False
-            print(lines[i])
+            #print(lines[i])
 
             while j < len(lines[i]):
                 if lines[i][j] == " ":
@@ -182,7 +187,7 @@ class MyWebServer(socketserver.BaseRequestHandler):
 
         while "\n" in lines:
             lines.remove("\n")
-        print(f"lines:{lines}")
+        #print(f"lines:{lines}")
         message = "\r".join(lines)
         return message
 
