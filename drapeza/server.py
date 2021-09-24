@@ -98,48 +98,7 @@ class MyWebServer(socketserver.BaseRequestHandler):
         payload = None
         index_search = False
         request_data = []
-        if "html" in start_line[1]:
-            content_type = "text/html\n\r"
-        elif "css" in start_line[1]:
-            content_type = "text/css\n\r"
-        elif start_line[1] == "/":
-            content_type = "text/html\n\r"
-        else:
-            index_search = True
-            content_type = "text/html\n\r"
-        path = start_line[1]
-        if len(start_line[1]) > 0 and start_line[1].startswith("/"):
-            path = start_line[1][1::]
-        if len(start_line[1]) > 0 and start_line[1].endswith("/"):
-            path = start_line[1][:len(start_line[0])-1:]
-        print(f"PATH:::::: {path}")
-        if index_search:
-            try:
-                payload = open(f"{rootdir}/{path}/index.html", "r")
-                payload = self.process_html_css(payload)
-                status_code = "200 OK\n\r"
-            except:
-                status_code = "404 Not Found\n\r"
-        else:
-            if path == "/":
-                try:
-                    payload = open(f"{rootdir}/index.html", "r")
-                    payload = self.process_html_css(payload)
-                    status_code = "200 OK\n\r"
-                except:
-                    status_code = "404 Not Found\n\r"
-            else:
-                try:
-                    print(f"PATH : {path}")
-                    payload = open(f"{rootdir}/{path}", "r")
-                    payload = self.process_html_css(payload)
-                    satus_code = "200 OK\n\r"
-                except:
-                    status_code = "404 Not Found\n\r"
-        request_data = [status_code , size, content_type, payload]
-        print(f"req data: {request_data}")
-                
-        '''
+        
         if len(start_line[1]) > 1 and start_line[1][0] == "/":
             start_line[1] = start_line[1][1::]
         print(f"START LINEEEEEEEEE ------------- : {start_line[1]}") 
@@ -148,12 +107,7 @@ class MyWebServer(socketserver.BaseRequestHandler):
                 filename = f"{root_dir}/index.html"
                 payload = open(f"{root_dir}/index.html", "r")
                 status_code = "200 OK\n\r"
-                import os
-                #size = str(os.patn.getsize(f"{rootdir}/{start_line[1]}"))
-                #content_type = "text/html; charset=UTF-8; charset=iso-8859-1"
                 content_type = "text/html;\n\r"
-                #size = os.path.getsize("{root_dir}/index.html")
-                #print(f"SIZEE::::: {size}")
                 payload = self.process_html_css(payload)
             except:
                 status_code = "404 Not Found\n\r"
@@ -164,8 +118,7 @@ class MyWebServer(socketserver.BaseRequestHandler):
                 if start_line[1].endswith("html") or start_line[1].endswith("html/"):
                     content_type = "text/html\n\r" #charset=UTF-8
                     payload = self.process_html_css(payload)
-                    import os
-                    #size = str(os.path.getsize(f"{rootdir}/{start_line[1]}\n\r"))
+                    
                 elif start_line[1].endswith("css") or start_line[1].endswith("css/"):
                     content_type = "text/css\n\r"
                     #content_type = "text/css; charset=UTF-8\n\r"
@@ -206,10 +159,10 @@ class MyWebServer(socketserver.BaseRequestHandler):
 
         # for any attempted files that were still of html or css type that
         # were unreachable
-        #if "html" in start_line[0]:
-         #   content_type = "text/html\n\r"
-        #elif "css" in start_line[0]:
-         #   content_type = "text/css\n\r"      
+        if "html" in start_line[0]:
+            content_type = "text/html\n\r"
+        elif "css" in start_line[0]:
+            content_type = "text/css\n\r"      
 
 
         if start_line[0].lower() != "get":
@@ -217,7 +170,7 @@ class MyWebServer(socketserver.BaseRequestHandler):
         #self.process_html(payload)
         request_data = [status_code, size, content_type, payload]
         print(f"REQUEST DATA ->>>>>>>>>> {request_data})")
-        '''
+        
         return(request_data)
 
     # process_html_css goes through an HTML or CSS file and returns one to be used in the response message
